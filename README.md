@@ -1,6 +1,6 @@
 # Not-Chatrooms
 A basic HTML chat room (backend hosted on Firebase)
-## (This project was made with the assistance of Ai and i suggest you just make your own)
+* (This project was made with the assistance of Ai and i suggest you just make your own) *
  Just a basic chatroom i made for a website i have
  The index.html does not work in its current condition and needs to be set up 
 
