@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Not chatrooms</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0a0612;
+    --bg-panel: #150c24;
+    --bg-input: #1c1130;
+    --text: #e8def8;
+    --text-dim: #6b5a8a;
+    --accent: #b47cff;
+    --accent-dim: #5b3a91;
+    --error: #ff5c7a;
+    --border: #2e1c47;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    margin: 0;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    min-height: 100vh;
+  }
+
+  /* ambient CRT vignette on the page */
+  body::before{
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.55) 100%);
+    z-index: 5;
+  }
+
+  .terminal {
+    width: 100%;
+    max-width: 640px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.4), 0 20px 60px rgba(0,0,0,0.5);
+  }
+
+  /* scanline texture */
+  .terminal::after{
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      to bottom,
+      rgba(255,255,255,0.025) 0px,
+      rgba(255,255,255,0.025) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+    animation: flicker 6s infinite steps(1);
+  }
+
+  @keyframes flicker {
+    0%, 92%, 100% { opacity: 1; }
+    93% { opacity: 0.85; }
+    95% { opacity: 1; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .terminal::after{ animation: none; }
+    .caret{ animation: none !important; opacity: 1; }
+  }
+
+  .titlebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: #120a1f;
+    border-bottom: 1px solid var(--border);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+  }
+
+  .titlebar .chan {
+    color: var(--accent);
+    letter-spacing: 0.02em;
+  }
+
+  .lights {
+    display: flex;
+    gap: 6px;
+  }
+
+  .lights span {
+    width: 8px;
+    height: 8px;
+    border: 1px solid var(--accent-dim);
+    display: inline-block;
+  }
+
+  .status {
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .status .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-dim);
+  }
+
+  .status.online .dot { background: var(--accent); }
+  .status.online { color: var(--accent); }
+
+  /* log */
+  #log {
+    height: 420px;
+    overflow-y: auto;
+    padding: 16px 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  #log .line { white-space: pre-wrap; word-break: break-word; }
+  #log .ts { color: var(--text-dim); }
+  #log .who { color: var(--accent); font-weight: 600; }
+  #log .who.me { color: #ff8fe3; }
+  #log .sys { color: var(--text-dim); font-style: italic; }
+  #log .msg { color: var(--text); }
+
+  #log::-webkit-scrollbar { width: 8px; }
+  #log::-webkit-scrollbar-track { background: var(--bg-panel); }
+  #log::-webkit-scrollbar-thumb { background: var(--border); }
+
+  /* input row */
+  form#composer {
+    display: flex;
+    align-items: center;
+    border-top: 1px solid var(--border);
+    background: var(--bg-input);
+    padding: 10px 14px;
+    gap: 8px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  form#composer .prompt { color: var(--accent); }
+
+  #msgInput {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+  }
+
+  #msgInput::placeholder { color: var(--text-dim); }
+
+  .caret {
+    display: inline-block;
+    width: 8px;
+    height: 16px;
+    background: var(--accent);
+    animation: blink 1s steps(1) infinite;
+  }
+
+  @keyframes blink { 50% { opacity: 0; } }
+
+  button.send {
+    background: transparent;
+    border: 1px solid var(--accent-dim);
+    color: var(--accent);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 3px;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+  }
+
+  button.send:hover { border-color: var(--accent); background: rgba(255,180,84,0.08); }
+  button.send:focus-visible, #msgInput:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* login overlay */
+  #login {
+    position: absolute;
+    inset: 0;
+    background: rgba(18,16,11,0.97);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 24px;
+    z-index: 10;
+    font-family: 'IBM Plex Mono', monospace;
+    text-align: center;
+  }
+
+  #login p.label { color: var(--text-dim); font-size: 12px; letter-spacing: 0.05em; }
+  #login h1 { font-size: 15px; color: var(--accent); margin: 0 0 4px; font-weight: 600; }
+
+  #handleInput {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    padding: 10px 12px;
+    width: 220px;
+    text-align: center;
+    outline: none;
+    border-radius: 3px;
+  }
+
+  #handleInput:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  button.join {
+    background: var(--accent);
+    color: #1c1130;
+    border: none;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 9px 20px;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+
+  button.join:hover { filter: brightness(1.08); }
+  #loginError { color: var(--error); font-size: 12px; min-height: 14px; }
+
+  @media (max-width: 480px){
+    #log { height: 60vh; }
+  }
+</style>
+</head>
+<body>
+
+<div class="terminal">
+  <div id="login">
+    <h1>// welcome to Not chatrooms</h1>
+    <p class="label">enter a handle to join</p>
+    <input id="handleInput" maxlength="20" placeholder="handle" autocomplete="off" />
+    <button class="join" id="joinBtn">join channel</button>
+    <p id="loginError"></p>
+  </div>
+
+  <div class="titlebar">
+    <span class="chan">Not chatrooms</span>
+    <div class="lights"><span></span><span></span><span></span></div>
+    <span class="status" id="statusEl"><span class="dot"></span><span id="statusText">connecting</span></span>
+  </div>
+
+  <div id="log"></div>
+
+  <form id="composer">
+    <span class="prompt">&gt;</span>
+    <input id="msgInput" type="text" maxlength="500" placeholder="type a message and hit enter" autocomplete="off" disabled />
+    <span class="caret"></span>
+    <button type="submit" class="send" disabled>send</button>
+  </form>
+</div>
+
+<!-- Firebase (Realtime Database) — this is the "backend" for the chat room -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+  // ---- 1. PASTE YOUR FIREBASE CONFIG HERE ----
+  // Get this from Firebase Console > Project Settings > General > Your apps > SDK setup and config
+ const firebaseConfig = {
+    apiKey: "AIzaSyBVfwm4MLSL8vyLFvDFNCAMShsRe0Y5lKg",
+    authDomain: "not-chatroom-3dd87.firebaseapp.com/",
+    databaseURL: "https://not-chatroom-3dd87-default-rtdb.firebaseio.com",
+    projectId: "not-chatroom-3dd87",
+    storageBucket: "not-chatroom-3dd87.firebasestorage.app",
+    messagingSenderId: "839272878235",
+    appId: "1:839272878235:web:1d7a7bc404b7f2d317763e""
+  };
+
+  const app = firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  const messagesRef = db.ref("messages");
+
+  const logEl = document.getElementById("log");
+  const composer = document.getElementById("composer");
+  const msgInput = document.getElementById("msgInput");
+  const sendBtn = composer.querySelector("button.send");
+  const statusEl = document.getElementById("statusEl");
+  const statusText = document.getElementById("statusText");
+
+  const loginEl = document.getElementById("login");
+  const handleInput = document.getElementById("handleInput");
+  const joinBtn = document.getElementById("joinBtn");
+  const loginError = document.getElementById("loginError");
+
+  let handle = localStorage.getItem("chat_handle") || "";
+
+  function escapeHtml(str){
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function formatTime(ts){
+    const d = new Date(ts);
+    const hh = String(d.getHours()).padStart(2, "0");
+    const mm = String(d.getMinutes()).padStart(2, "0");
+    return `${hh}:${mm}`;
+  }
+
+  function appendLine({ html }){
+    const wasNearBottom = logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight < 80;
+    const line = document.createElement("div");
+    line.className = "line";
+    line.innerHTML = html;
+    logEl.appendChild(line);
+    if (wasNearBottom) logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function renderMessage(msg){
+    const who = escapeHtml(msg.user || "anon");
+    const meClass = who === handle ? " me" : "";
+    const time = formatTime(msg.ts || Date.now());
+    const text = escapeHtml(msg.text || "");
+    appendLine({
+      html: `<span class="ts">[${time}]</span> <span class="who${meClass}">${who}</span> <span class="msg">${text}</span>`
+    });
+  }
+
+  function renderSystem(text){
+    appendLine({ html: `<span class="sys">${escapeHtml(text)}</span>` });
+  }
+
+  // connection status (Firebase's special .info/connected path)
+  db.ref(".info/connected").on("value", (snap) => {
+    const connected = snap.val() === true;
+    statusEl.classList.toggle("online", connected);
+    statusText.textContent = connected ? "connected" : "connecting";
+  });
+
+  // listen for new messages
+  messagesRef.orderByChild("ts").limitToLast(100).on("child_added", (snap) => {
+    renderMessage(snap.val());
+  });
+
+  function enterChat(name){
+    handle = name;
+    localStorage.setItem("chat_handle", handle);
+    loginEl.style.display = "none";
+    msgInput.disabled = false;
+    sendBtn.disabled = false;
+    msgInput.focus();
+    renderSystem(`joined as ${handle}`);
+  }
+
+  joinBtn.addEventListener("click", () => {
+    const val = handleInput.value.trim();
+    if (!val){
+      loginError.textContent = "handle can't be empty";
+      return;
+    }
+    if (val.length > 20){
+      loginError.textContent = "keep it under 20 characters";
+      return;
+    }
+    enterChat(val);
+  });
+
+  handleInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") joinBtn.click();
+  });
+
+  composer.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const text = msgInput.value.trim();
+    if (!text) return;
+    messagesRef.push({
+      user: handle,
+      text: text,
+      ts: firebase.database.ServerValue.TIMESTAMP
+    });
+    msgInput.value = "";
+  });
+
+  // auto-fill remembered handle
+  if (handle) handleInput.value = handle;
+</script>
+</body>
+</html>
