@@ -289,20 +289,19 @@
 <script>
   // ---- 1. PASTE YOUR FIREBASE CONFIG HERE ----
   // Get this from Firebase Console > Project Settings > General > Your apps > SDK setup and config
- const firebaseConfig = {
+  const firebaseConfig = {
     apiKey: "AIzaSyBVfwm4MLSL8vyLFvDFNCAMShsRe0Y5lKg",
-    authDomain: "not-chatroom-3dd87.firebaseapp.com/",
+    authDomain: "not-chatroom-3dd87.firebaseapp.com",
     databaseURL: "https://not-chatroom-3dd87-default-rtdb.firebaseio.com",
     projectId: "not-chatroom-3dd87",
     storageBucket: "not-chatroom-3dd87.firebasestorage.app",
     messagingSenderId: "839272878235",
-    appId: "1:839272878235:web:1d7a7bc404b7f2d317763e""
+    appId: "1:839272878235:web:1d7a7bc404b7f2d317763e"
   };
 
-  const app = firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
-  const messagesRef = db.ref("messages");
-
+  // ---- grab all DOM elements and wire up the UI FIRST ----
+  // This runs regardless of whether Firebase connects, so the join
+  // button and inputs always work even if the config below isn't set yet.
   const logEl = document.getElementById("log");
   const composer = document.getElementById("composer");
   const msgInput = document.getElementById("msgInput");
@@ -316,6 +315,7 @@
   const loginError = document.getElementById("loginError");
 
   let handle = localStorage.getItem("chat_handle") || "";
+  let messagesRef = null; // set once Firebase connects successfully
 
   function escapeHtml(str){
     const div = document.createElement("div");
@@ -353,26 +353,15 @@
     appendLine({ html: `<span class="sys">${escapeHtml(text)}</span>` });
   }
 
-  // connection status (Firebase's special .info/connected path)
-  db.ref(".info/connected").on("value", (snap) => {
-    const connected = snap.val() === true;
-    statusEl.classList.toggle("online", connected);
-    statusText.textContent = connected ? "connected" : "connecting";
-  });
-
-  // listen for new messages
-  messagesRef.orderByChild("ts").limitToLast(100).on("child_added", (snap) => {
-    renderMessage(snap.val());
-  });
-
   function enterChat(name){
     handle = name;
     localStorage.setItem("chat_handle", handle);
     loginEl.style.display = "none";
-    msgInput.disabled = false;
-    sendBtn.disabled = false;
     msgInput.focus();
     renderSystem(`joined as ${handle}`);
+    if (!messagesRef){
+      renderSystem("backend isn't connected yet — see the README to add your Firebase config");
+    }
   }
 
   joinBtn.addEventListener("click", () => {
@@ -395,7 +384,7 @@
   composer.addEventListener("submit", (e) => {
     e.preventDefault();
     const text = msgInput.value.trim();
-    if (!text) return;
+    if (!text || !messagesRef) return;
     messagesRef.push({
       user: handle,
       text: text,
@@ -406,6 +395,43 @@
 
   // auto-fill remembered handle
   if (handle) handleInput.value = handle;
+
+  // ---- now try to connect to Firebase ----
+  // The join button and typing already work above; sending/receiving
+  // messages needs a real config swapped in below (see README step 1-2).
+  const configIsPlaceholder = firebaseConfig.apiKey === "YOUR_API_KEY";
+
+  if (configIsPlaceholder){
+    statusText.textContent = "no backend configured";
+    msgInput.placeholder = "add your Firebase config to send messages (see README)";
+    msgInput.disabled = true;
+    sendBtn.disabled = true;
+  } else {
+    try {
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.database();
+      messagesRef = db.ref("messages");
+
+      db.ref(".info/connected").on("value", (snap) => {
+        const connected = snap.val() === true;
+        statusEl.classList.toggle("online", connected);
+        statusText.textContent = connected ? "connected" : "connecting";
+      });
+
+      messagesRef.orderByChild("ts").limitToLast(100).on("child_added", (snap) => {
+        renderMessage(snap.val());
+      });
+
+      msgInput.disabled = false;
+      sendBtn.disabled = false;
+    } catch (err){
+      console.error("Firebase failed to initialize:", err);
+      statusText.textContent = "backend error";
+      msgInput.placeholder = "backend error — check the console and your Firebase config";
+      msgInput.disabled = true;
+      sendBtn.disabled = true;
+    }
+  }
 </script>
 </body>
 </html>
