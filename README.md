@@ -6,7 +6,7 @@ A basic HTML chat room (backend hosted on Firebase)
 (This project was made with the assistance of Ai and i suggest you just make your own)
  # Instructions
 
- ## 1. Create a free Firebase backend
+## 1. Create a free Firebase backend
 
 1. Go to [console.firebase.google.com](https://console.firebase.google.com) and create a new project (you can turn off Google Analytics, it's not needed).
 2. In the left sidebar, go to **Build > Realtime Database** and click **Create Database**. Choose any region, and start in **test mode** for now (see security note below).
@@ -42,12 +42,20 @@ Test mode rules expire after 30 days and are wide open. For a basic public chat 
       ".read": true,
       ".write": true,
       ".indexOn": ["ts"]
+    },
+    "presence": {
+      ".read": true,
+      ".write": true
+    },
+    "typing": {
+      ".read": true,
+      ".write": true
     }
   }
 }
 ```
 
-This keeps it simple (anyone can read/write messages, which is what a public chat room needs), but scopes access to just the `messages` path rather than the whole database. Anyone with your config could technically spam the room — that's a real limitation of a backend-less, authless setup. If you want to lock it down further later, Firebase Authentication (e.g. anonymous sign-in) is the next step, but it's beyond "basic."
+This keeps it simple (anyone can read/write messages, presence, and typing state, which is what a public chat room needs), but scopes access to just those paths rather than the whole database. Anyone with your config could technically spam the room — that's a real limitation of a backend-less, authless setup. If you want to lock it down further later, Firebase Authentication (e.g. anonymous sign-in) is the next step, but it's beyond "basic."
 
 ## 4. Push to GitHub and enable Pages
 
@@ -61,4 +69,3 @@ git push -u origin main
 ```
 
 Then on GitHub: **Settings > Pages > Build and deployment > Source: Deploy from a branch**, pick `main` and `/ (root)`, and save. Your chat room will be live at `https://YOUR_USERNAME.github.io/YOUR_REPO/` within a minute or two.
-
