@@ -51,12 +51,13 @@
 
   .terminal {
     width: 100%;
-    max-width: 880px;
+    max-width: 1100px;
     background: var(--bg-panel);
     border: 1px solid var(--border);
     border-radius: 6px;
     overflow: hidden;
     position: relative;
+    display: flex;
     box-shadow: 0 0 0 1px rgba(0,0,0,0.4), 0 20px 60px rgba(0,0,0,0.5);
   }
 
@@ -98,6 +99,67 @@
     font-size: 12px;
   }
 
+  /* sidebar: online user list */
+  .sidebar {
+    width: 160px;
+    flex-shrink: 0;
+    background: var(--bg-input);
+    border-right: 1px solid var(--border);
+    padding: 14px 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    overflow-y: auto;
+  }
+
+  .sidebar-header {
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 10px;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  #userList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  #userList li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  #userList li .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #3ddc84;
+    flex-shrink: 0;
+  }
+
+  #userList li.me { color: #ff8fe3; }
+  #userList li.empty { color: var(--text-dim); font-style: italic; }
+  #userList li.empty .dot { display: none; }
+
+  .chat-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
   .titlebar .chan {
     color: var(--accent);
     letter-spacing: 0.02em;
@@ -134,7 +196,7 @@
 
   /* log */
   #log {
-    height: 578px;
+    height: 723px;
     overflow-y: auto;
     padding: 16px 14px;
     font-family: 'IBM Plex Mono', monospace;
@@ -152,6 +214,20 @@
   #log::-webkit-scrollbar { width: 8px; }
   #log::-webkit-scrollbar-track { background: var(--bg-panel); }
   #log::-webkit-scrollbar-thumb { background: var(--border); }
+
+  /* typing indicator */
+  .typing-indicator {
+    min-height: 22px;
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-style: italic;
+    color: var(--text-dim);
+    border-top: 1px solid var(--border);
+    background: var(--bg-panel);
+  }
 
   /* input row */
   form#composer {
@@ -255,37 +331,47 @@
 
   @media (max-width: 480px){
     #log { height: 60vh; }
+    .sidebar { display: none; }
   }
 </style>
 </head>
 <body>
 
 <div class="terminal">
-  <div id="login">
-    <h1>// welcome to Not chatrooms</h1>
-    <p class="label">enter a handle to join</p>
-    <input id="handleInput" maxlength="20" placeholder="handle" autocomplete="off" />
-    <button class="join" id="joinBtn">join channel</button>
-    <p id="loginError"></p>
+  <div class="sidebar">
+    <div class="sidebar-header">online</div>
+    <ul id="userList"><li class="empty">connecting…</li></ul>
   </div>
 
-  <div class="titlebar">
-    <span class="chan">Not chatrooms</span>
-    <div class="lights"><span></span><span></span><span></span></div>
-    <span class="status" id="statusEl"><span class="dot"></span><span id="statusText">connecting</span></span>
+  <div class="chat-main">
+    <div id="login">
+      <h1>// welcome to Not chatrooms</h1>
+      <p class="label">enter a username to join</p>
+      <input id="handleInput" maxlength="20" placeholder="username" autocomplete="off" />
+      <button class="join" id="joinBtn">join channel</button>
+      <p id="loginError"></p>
+    </div>
+
+    <div class="titlebar">
+      <span class="chan">Not chatrooms</span>
+      <div class="lights"><span></span><span></span><span></span></div>
+      <span class="status" id="statusEl"><span class="dot"></span><span id="statusText">connecting</span></span>
+    </div>
+
+    <div id="log"></div>
+
+    <div id="typingIndicator" class="typing-indicator"></div>
+
+    <form id="composer">
+      <span class="prompt">&gt;</span>
+      <input id="msgInput" type="text" maxlength="500" placeholder="type a message and hit enter" autocomplete="off" disabled />
+      <span class="caret"></span>
+      <button type="submit" class="send" disabled>send</button>
+    </form>
   </div>
-
-  <div id="log"></div>
-
-  <form id="composer">
-    <span class="prompt">&gt;</span>
-    <input id="msgInput" type="text" maxlength="500" placeholder="type a message and hit enter" autocomplete="off" disabled />
-    <span class="caret"></span>
-    <button type="submit" class="send" disabled>send</button>
-  </form>
 </div>
 
-<div id="fatalBanner" style="display:none; max-width:880px; width:100%; margin:12px auto 0; padding:10px 14px; background:#2a0f1e; border:1px solid #ff5c7a; color:#ffc2d1; font-family:'IBM Plex Mono', monospace; font-size:12px; border-radius:4px; white-space:pre-wrap;"></div>
+<div id="fatalBanner" style="display:none; max-width:1100px; width:100%; margin:12px auto 0; padding:10px 14px; background:#2a0f1e; border:1px solid #ff5c7a; color:#ffc2d1; font-family:'IBM Plex Mono', monospace; font-size:12px; border-radius:4px; white-space:pre-wrap;"></div>
 
 <!-- Firebase (Realtime Database) — this is the "backend" for the chat room -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -329,11 +415,29 @@
   const handleInput = document.getElementById("handleInput");
   const joinBtn = document.getElementById("joinBtn");
   const loginError = document.getElementById("loginError");
+  const userListEl = document.getElementById("userList");
+  const typingIndicatorEl = document.getElementById("typingIndicator");
 
   let handle = "";
   try { handle = localStorage.getItem("chat_handle") || ""; }
   catch (e) { console.warn("localStorage unavailable:", e); }
-  let messagesRef = null; // set once Firebase connects successfully
+  let messagesRef = null;   // set once Firebase connects successfully
+  let presenceRef = null;   // set once Firebase connects successfully
+  let myPresenceRef = null; // this tab's entry in the online list
+  let typingRootRef = null; // set once Firebase connects successfully
+  let myTypingRef = null;   // this tab's "currently typing" entry
+  let typingClearTimer = null;
+
+  // ---- basic rate limiting: 60 messages/min, 10s cooldown once hit ----
+  // Client-side only — enough to stop accidental spam/runaway loops,
+  // not a substitute for real server-side enforcement.
+  const RATE_LIMIT_MAX = 60;
+  const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+  const RATE_LIMIT_COOLDOWN_MS = 10 * 1000;
+  const DEFAULT_MSG_PLACEHOLDER = "type a message and hit enter";
+  let sentTimestamps = [];
+  let cooldownUntil = 0;
+  let cooldownInterval = null;
 
   function escapeHtml(str){
     const div = document.createElement("div");
@@ -371,6 +475,70 @@
     appendLine({ html: `<span class="sys">${escapeHtml(text)}</span>` });
   }
 
+  function startCooldown(){
+    cooldownUntil = Date.now() + RATE_LIMIT_COOLDOWN_MS;
+    msgInput.disabled = true;
+    sendBtn.disabled = true;
+    if (typingClearTimer){ clearTimeout(typingClearTimer); typingClearTimer = null; }
+    if (myTypingRef) myTypingRef.remove();
+    renderSystem(`slow down — you hit the rate limit. cooling down for ${RATE_LIMIT_COOLDOWN_MS / 1000}s`);
+
+    if (cooldownInterval) clearInterval(cooldownInterval);
+    cooldownInterval = setInterval(() => {
+      const remaining = Math.ceil((cooldownUntil - Date.now()) / 1000);
+      if (remaining <= 0){
+        clearInterval(cooldownInterval);
+        cooldownInterval = null;
+        msgInput.disabled = !messagesRef;
+        sendBtn.disabled = !messagesRef;
+        msgInput.placeholder = DEFAULT_MSG_PLACEHOLDER;
+        if (messagesRef) msgInput.focus();
+      } else {
+        msgInput.placeholder = `cooling down… ${remaining}s`;
+      }
+    }, 250);
+  }
+
+  function canSendMessage(){
+    if (Date.now() < cooldownUntil) return false;
+
+    const now = Date.now();
+    sentTimestamps = sentTimestamps.filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+
+    if (sentTimestamps.length >= RATE_LIMIT_MAX){
+      startCooldown();
+      return false;
+    }
+    return true;
+  }
+
+  function renderUserList(users){
+    if (!users.length){
+      userListEl.innerHTML = '<li class="empty">nobody online</li>';
+      return;
+    }
+    userListEl.innerHTML = users
+      .map((u) => {
+        const cls = u === handle ? "me" : "";
+        return `<li class="${cls}"><span class="dot"></span>${escapeHtml(u)}</li>`;
+      })
+      .join("");
+  }
+
+  function renderTypingIndicator(names){
+    if (!names.length){
+      typingIndicatorEl.textContent = "";
+    } else if (names.length > 3){
+      typingIndicatorEl.textContent = "Multiple people typing";
+    } else if (names.length === 1){
+      typingIndicatorEl.textContent = `${names[0]} is typing…`;
+    } else if (names.length === 2){
+      typingIndicatorEl.textContent = `${names[0]} and ${names[1]} are typing…`;
+    } else {
+      typingIndicatorEl.textContent = `${names[0]}, ${names[1]}, and ${names[2]} are typing…`;
+    }
+  }
+
   function enterChat(name){
     handle = name;
     try { localStorage.setItem("chat_handle", handle); }
@@ -380,6 +548,16 @@
     renderSystem(`joined as ${handle}`);
     if (!messagesRef){
       renderSystem("backend isn't connected yet — see the README to add your Firebase config");
+      return;
+    }
+    if (presenceRef){
+      myPresenceRef = presenceRef.push();
+      myPresenceRef.set({ name: handle, ts: firebase.database.ServerValue.TIMESTAMP });
+      myPresenceRef.onDisconnect().remove();
+    }
+    if (typingRootRef && myPresenceRef){
+      myTypingRef = typingRootRef.child(myPresenceRef.key);
+      myTypingRef.onDisconnect().remove();
     }
   }
 
@@ -400,10 +578,26 @@
     if (e.key === "Enter") joinBtn.click();
   });
 
+  msgInput.addEventListener("input", () => {
+    if (!myTypingRef) return;
+    myTypingRef.set({ name: handle, ts: firebase.database.ServerValue.TIMESTAMP });
+    if (typingClearTimer) clearTimeout(typingClearTimer);
+    typingClearTimer = setTimeout(() => {
+      typingClearTimer = null;
+      if (myTypingRef) myTypingRef.remove();
+    }, 3000);
+  });
+
   composer.addEventListener("submit", (e) => {
     e.preventDefault();
     const text = msgInput.value.trim();
     if (!text || !messagesRef) return;
+    if (!canSendMessage()) return;
+
+    if (typingClearTimer){ clearTimeout(typingClearTimer); typingClearTimer = null; }
+    if (myTypingRef) myTypingRef.remove();
+
+    sentTimestamps.push(Date.now());
     messagesRef.push({
       user: handle,
       text: text,
@@ -425,11 +619,13 @@
     msgInput.placeholder = "add your Firebase config to send messages (see README)";
     msgInput.disabled = true;
     sendBtn.disabled = true;
+    userListEl.innerHTML = '<li class="empty">no backend configured</li>';
   } else {
     try {
       firebase.initializeApp(firebaseConfig);
       const db = firebase.database();
       messagesRef = db.ref("messages");
+      presenceRef = db.ref("presence");
 
       db.ref(".info/connected").on("value", (snap) => {
         const connected = snap.val() === true;
@@ -441,6 +637,25 @@
         renderMessage(snap.val());
       });
 
+      presenceRef.on("value", (snap) => {
+        const users = [];
+        snap.forEach((child) => {
+          const val = child.val();
+          if (val && val.name) users.push(val.name);
+        });
+        renderUserList(users);
+      });
+
+      typingRootRef = db.ref("typing");
+      typingRootRef.on("value", (snap) => {
+        const names = [];
+        snap.forEach((child) => {
+          const val = child.val();
+          if (val && val.name && val.name !== handle) names.push(val.name);
+        });
+        renderTypingIndicator(names);
+      });
+
       msgInput.disabled = false;
       sendBtn.disabled = false;
     } catch (err){
@@ -449,6 +664,7 @@
       msgInput.placeholder = "backend error — check the console and your Firebase config";
       msgInput.disabled = true;
       sendBtn.disabled = true;
+      userListEl.innerHTML = '<li class="empty">backend error</li>';
     }
   }
 </script>
